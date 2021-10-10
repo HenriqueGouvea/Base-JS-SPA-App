@@ -34,14 +34,13 @@
 </head>
 <!-- Texts (variables) to change:
     - Title
-    - View1, View2, View3
-    - View 1, View 2, View 3
+    - View1, View2
+    - View 1, View 2
     - tableSample
     - savedObjects
     - Saved objects
     - dateTextBox
     - descriptionTextBox
-    - savedObjectsTextArea
  -->
 <body>
     <header>
@@ -57,9 +56,6 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#" onclick="showSession(this.getAttribute('view'))" view="View2">View2</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showSession(this.getAttribute('view'))" view="View3">View3</a>
                     </li>
                 </ul>
             </div>
@@ -102,6 +98,8 @@
                         <h4>View 2</h4>
                     </div>
                     <div class="form-row">
+                        <input id="idHiddenField" type="hidden" />
+
                         <div class="form-group col-md-2">
                             <label>Data:</label>
                             <input id="dateTextBox" class="form-control" type="date" />
@@ -113,43 +111,16 @@
                         </div>
                     </div>
                     
-                    <input type="submit" onclick="save(); return false;" class="btn btn-primary my-1" value="Salvar" />
-                    <input type="submit" onclick="clearFieldsInsideElement('View2'); return false;" class="btn btn-primary my-1" value="Limpar" />
+                    <input type="submit" onclick="save(); return false;" class="btn btn-dark btn-primary my-1" value="Salvar" />
+                    <input type="submit" onclick="clearFieldsInsideElement('View2'); return false;" class="btn btn-dark btn-primary my-1" value="Limpar" />
                     <div id="saveAlert" class="alert alert-warning d-none mt-3"></div>
                     <div id="saveSuccessAlert" class="alert alert-success d-none mt-3">
-                        O registro foi adicionado com sucesso.
+                        O registro foi salvo com sucesso.
                         <input type="submit" onclick="showSession('View1'); return false;" class="btn btn-primary mt-3" value="Voltar ao início">
                     </div>
                 </form>
             </div>
-
-            <div id="View3" class="invisible-session">
-                <h4>View 3</h4>
-                <table id="expenses" class="table table-striped table-sm table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Id</th>
-                            <th>Data</th>
-                            <th>Value</th>
-                            <th>Options</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                Saved objects
-                            </td>
-                            <td>
-                                <textarea id="savedObjectsTextArea" class="form-control" rows="5"></textarea>
-                            </td>
-                            <td>
-                                <input type="submit" onclick="clearSpecificElement('savedObjectsTextArea'); return false;" class="btn btn-primary" value="Limpar" />
-                                <input type="submit" onclick="saveLocalStorageData('savedObjects', 'savedObjectsTextArea'); return false;" class="btn btn-primary" value="Salvar" />
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            
         </div>
     </main>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
@@ -157,7 +128,7 @@
     <script src="https://kit.fontawesome.com/cd9dad636c.js" crossorigin="anonymous"></script>
     <script type="text/javascript">
         var savedObjects = [];
-        var sessions = ['View2', 'View1', 'View3'];
+        var sessions = ['View2', 'View1'];
 
         (function () {
             loadSavedRecords();
@@ -168,8 +139,6 @@
 
             if (savedObjectsLocalStorage) {
                 savedObjects = JSON.parse(savedObjectsLocalStorage);
-
-                document.getElementById("savedObjectsTextArea").textContent = savedObjectsLocalStorage;
             }
 
             updateSavedObjectsTable();
@@ -185,9 +154,17 @@
                 description: "",
             };
 
-            savedObject.id = getNewId();
+            let idToEdit = document.getElementById("idHiddenField").value;
+            let isNewRecord = idToEdit ? false : true;
+
+            savedObject.id = isNewRecord ? getNewId() : parseInt(idToEdit);
             savedObject.date = new Date(document.getElementById("dateTextBox").value);
             savedObject.description = document.getElementById("descriptionTextBox").value;
+
+            if (!isNewRecord) {
+                deleteSavedObject(parseInt(idToEdit));
+                document.getElementById("idHiddenField").value = "";
+            }
 
             savedObjects.push(savedObject);
             localStorage.setItem("savedObjects", JSON.stringify(savedObjects));
@@ -227,19 +204,26 @@
 
                 let someOtherCell1 = newRow.insertCell(0);
                 someOtherCell1.classList.add("text-right");
+                someOtherCell1.classList.add("align-middle");
                 let someOtherCell1Text = document.createTextNode(item.id);
                 someOtherCell1.appendChild(someOtherCell1Text);
 
                 let dateCell = newRow.insertCell(1);
+                dateCell.classList.add("align-middle");
                 let dateText = document.createTextNode(new Date(item.date).toLocaleDateString("pt"));
                 dateCell.appendChild(dateText);
 
                 let descriptionCell = newRow.insertCell(2);
+                descriptionCell.classList.add("align-middle");
                 let descriptionText = document.createTextNode(item.description);
                 descriptionCell.appendChild(descriptionText);
 
-                let someOtherCell2 = newRow.insertCell(3);
-                someOtherCell2.innerHTML = "<button class='btn' onclick='deleteRecord(" + item.id + ")'><i class='fa fa-trash' aria-hidden='true'></i></button>";
+                let optionsCell = newRow.insertCell(3);
+                optionsCell.classList.add("d-flex");
+                optionsCell.classList.add("flex-row");
+                let deleteButton = "<button class='btn' onclick='deleteRecord(" + item.id + ")'><i class='fa fa-trash' aria-hidden='true'></i></button>";
+                let editButton = "<button class='btn' onclick='editRecord(" + item.id + ")'><i class='fa fa-edit' aria-hidden='true'></i></button>";
+                optionsCell.innerHTML = editButton + deleteButton;
             });
         }
 
@@ -253,18 +237,30 @@
             document.getElementById("dateTextBox").valueAsDate = new Date();
         }
 
-        function clearSpecificElement(elementId) {
-            document.getElementById(elementId).value = "";
-        }
+        // Table buttons
 
         function deleteRecord(id) {
             var r = confirm("Do you want to delete this record?");
 
             if (r === true) {
-                savedObjects.splice(savedObjects.findIndex(item => item.id === id), 1);
-                localStorage.setItem("savedObjects", JSON.stringify(savedObjects));
-                loadSavedRecords();
+                deleteSavedObject(id);
             }
+        }
+
+        function deleteSavedObject(id) {
+            savedObjects.splice(savedObjects.findIndex(item => item.id === id), 1);
+            localStorage.setItem("savedObjects", JSON.stringify(savedObjects));
+            loadSavedRecords();
+        }
+
+        function editRecord(id) {
+            let itemToEdit = savedObjects.filter((item) => item.id === id)[0];
+            
+            showSession("View2");
+
+            document.getElementById("idHiddenField").value = itemToEdit.id;
+            document.getElementById("dateTextBox").valueAsDate = new Date(itemToEdit.date);
+            document.getElementById("descriptionTextBox").value = itemToEdit.description;
         }
 
         // Navigation
@@ -283,13 +279,9 @@
                     document.querySelector('.nav-link[view="' + session + '"]').parentElement.classList.remove("active");
                 }
             });
-        }
 
-        // Application data
-
-        function saveLocalStorageData(localStorageKey, elementIdWithValue) {
-            localStorage.setItem(localStorageKey, document.getElementById(elementIdWithValue).value);
-            loadSavedRecords();
+            // Hide all alerts
+            document.querySelectorAll(".alert").forEach(function (item) { item.classList.add("d-none") });
         }
     </script>
 </body>

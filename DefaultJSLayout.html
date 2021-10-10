@@ -73,21 +73,21 @@
                     <table id="tableSample" class="table table-striped table-sm table-bordered">
                         <thead>
                             <tr>
-                                <th>
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <span class="desktop-only">Data</span>
-                                </th>
-                                <th class="text-right">
-                                    <i class="fas fa-coins"></i>
-                                    <span class="desktop-only">Moedas</span>
-                                </th>
                                 <th class="text-right">
                                     <i class="fas fa-money-bill-wave"></i>
                                     <span class="desktop-only">Notas</span>
                                 </th>
-                                <th class="text-right">
+                                <th>
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span class="desktop-only">Data</span>
+                                </th>
+                                <th>
+                                    <i class="fas fa-coins"></i>
+                                    <span class="desktop-only">Moedas</span>
+                                </th>
+                                <th class="text-center">
                                     <i class="fas fa-dollar-sign"></i>
-                                    <span class="desktop-only">Total</span>
+                                    <span class="desktop-only">Opções</span>
                                 </th>
                             </tr>
                         </thead>
@@ -128,6 +128,7 @@
                 <table id="expenses" class="table table-striped table-sm table-bordered">
                     <thead>
                         <tr>
+                            <th>Id</th>
                             <th>Data</th>
                             <th>Value</th>
                             <th>Options</th>
@@ -179,10 +180,12 @@
         // New record
         function save() {
             let savedObject = {
+                id: 0,
                 date: new Date(),
                 description: "",
             };
 
+            savedObject.id = getNewId();
             savedObject.date = new Date(document.getElementById("dateTextBox").value);
             savedObject.description = document.getElementById("descriptionTextBox").value;
 
@@ -193,6 +196,13 @@
             window.scrollTo(0, document.body.scrollHeight);
             updateSavedObjectsTable();
             clearFieldsInsideElement("View2");
+        }
+
+        function getNewId() {
+            if (savedObjects.length === 0) return 1;
+
+            let items = savedObjects.sort((a, b) => (a.id < b.id) ? 1 : -1);
+            return items[0].id + 1;
         }
 
         function updateSavedObjectsTable() {
@@ -215,22 +225,21 @@
 
                 let newRow = tableRef.insertRow(tableRowsLength);
 
-                let dateCell = newRow.insertCell(0);
+                let someOtherCell1 = newRow.insertCell(0);
+                someOtherCell1.classList.add("text-right");
+                let someOtherCell1Text = document.createTextNode(item.id);
+                someOtherCell1.appendChild(someOtherCell1Text);
+
+                let dateCell = newRow.insertCell(1);
                 let dateText = document.createTextNode(new Date(item.date).toLocaleDateString("pt"));
                 dateCell.appendChild(dateText);
 
-                let descriptionCell = newRow.insertCell(1);
-                descriptionCell.classList.add("text-left"); //example on how to add a class
+                let descriptionCell = newRow.insertCell(2);
                 let descriptionText = document.createTextNode(item.description);
                 descriptionCell.appendChild(descriptionText);
 
-                let someOtherCell1 = newRow.insertCell(2);
-                let someOtherCell1Text = document.createTextNode("1");
-                someOtherCell1.appendChild(someOtherCell1Text);
-
                 let someOtherCell2 = newRow.insertCell(3);
-                let someOtherCell2Text = document.createTextNode("1");
-                someOtherCell2.appendChild(someOtherCell2Text);
+                someOtherCell2.innerHTML = "<button class='btn' onclick='deleteRecord(" + item.id + ")'><i class='fa fa-trash' aria-hidden='true'></i></button>";
             });
         }
 
@@ -246,6 +255,16 @@
 
         function clearSpecificElement(elementId) {
             document.getElementById(elementId).value = "";
+        }
+
+        function deleteRecord(id) {
+            var r = confirm("Do you want to delete this record?");
+
+            if (r === true) {
+                savedObjects.splice(savedObjects.findIndex(item => item.id === id), 1);
+                localStorage.setItem("savedObjects", JSON.stringify(savedObjects));
+                loadSavedRecords();
+            }
         }
 
         // Navigation
